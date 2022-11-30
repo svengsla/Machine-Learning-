@@ -1,0 +1,165 @@
+---
+title: "HC assignment 05"
+author: "Sai Supriya"
+date: '2022-11-28'
+output:
+  pdf_document: default
+  html_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Hierarchial Clustering
+```{r}
+library(readr)
+Cereals <- read_csv("Downloads/Cereals.csv")
+
+str(Cereals)
+```
+## Installing & calling required packages
+```{r}
+library(tidyverse)## Data manipulation
+library(cluster)  ## Clustering Algorithms
+library(factoextra) ## Clustering Visualization
+library(dendextend)  ## for comparing 2 dendograms
+```
+
+
+```{r}
+Cereals1<- Cereals[, unlist(lapply(Cereals, is.numeric))]
+Cereals1
+```
+
+Removing any missing values
+```{r}
+Cereals2 <- na.omit(Cereals1)
+```
+Scaling the data & Normalizing data
+
+```{r}
+Cereals3<- Cereals2[,1:13]
+Cereals3<- scale(Cereals2, center = TRUE, scale = TRUE)
+head(Cereals3)
+```
+##Task-1.Apply hierarchical clustering to the data using Euclidean distance to the normalized measurements. 
+#Use Agnes to compare the clustering from single linkage, complete 
+#linkage, average linkage, and Ward. Choose the best method
+
+##Computing the distance matrix Dissimilarity matrix
+
+```{r}
+## Euclidean distance to the normalized measurements. 
+
+Euclidean_Distance<- dist(Cereals3, method = "euclidean")
+
+
+```
+###Hierarchial clustering using complete linkage & plotting the obtained dendogram
+
+```{r}
+HC1<- hclust(Euclidean_Distance, method = "complete")
+
+plot(HC1, cex=0.6, hang= -1)
+
+round(HC1$height, 3)
+```
+
+
+## Using agnes and other to find best option
+```{r}
+library(cluster)
+## Use Agnes to compare the clustering from  single linkage, complete linkage, average linkage, and Ward.
+
+
+HC_single <- agnes(Cereals3, method="single")
+HC_complete <- agnes(Cereals3, method = "complete")
+HC_average <- agnes(Cereals3, method = "average")
+HC_ward<- agnes(Cereals3, method = "ward")
+
+print(HC_single$ac)
+
+
+print(HC_complete$ac)
+
+print(HC_average$ac)
+
+print(HC_ward$ac)
+
+```
+It can be infered that the ac ( agglomerate coefficient for ward method is greater than the other two methods.)
+
+
+## Using the dendrogram to find optimal no. of clusters
+##Cluster partition A 
+● Use the cluster centroids from A to assign each record in partition B (each record 
+is assigned to the cluster with the closest centroid). 
+● Assess how consistent the cluster assignments are compared to the 
+assignments based on all the data
+
+```{r}
+HC_ward<- agnes(Euclidean_Distance, method = "ward")
+pltree(HC_ward, cex= 0.6, hang= -1 , main= "Dendogram of agnes for ward")
+```
+
+
+#### Divisive clustering
+```{r}
+hc_4<- diana(Cereals3)
+hc_4$dc
+pltree(hc_4, cex=0.6, hang=-1, main="Dend of diana")
+
+```
+##"Srength of the endogram is observed to be 83%"
+
+```{r}
+dendrogram= hclust(dist(Cereals3, method = 'euclidean'), method = 'ward.D')
+plot(dendrogram, main= paste('dendrogram'),
+xlab= 'Height',
+ylab= 'Euclidean distance')
+
+```
+The largest vertical distance is observed to have 5 clusters at the same level.
+
+##Fitting hierarchial clustering model
+```{r}
+
+hc5= hclust(dist(Cereals3, method = 'euclidean'), method = 'ward.D2')
+
+
+## Cut tree into 5 groups
+
+sub_grp = cutree(hc5, k=5)
+
+##Number of in each clusters
+table(sub_grp)
+
+##
+plot(hc5, cex=0.6)
+rect.hclust(hc5, k=5, border = 2:5,)
+Bind_clus<- cbind.data.frame(cbind(Cereals3, sub_grp))
+```
+##Determing optimal clusters 
+
+```{r}
+library(cluster)
+library(factoextra)
+fviz_nbclust(Cereals3, FUN = hcut, method = "silhouette")
+fviz_cluster(list(data= Cereals3, cluster= sub_grp))
+```
+###3)The elementary public schools would like to choose a set of cereals to include in their
+#daily cafeterias. Every day a different cereal is offered, but all cereals should support a
+#healthy diet. For this goal, you are requested to find a cluster of “healthy cereals.”
+```{r}
+Healthy_cereals<- cbind(Cereals2,sub_grp)
+mean(Healthy_cereals[Healthy_cereals$sub_grp==1, "rating"])
+mean(Healthy_cereals[Healthy_cereals$sub_grp==2,"rating"])
+mean(Healthy_cereals[Healthy_cereals$sub_grp==3,"rating"])
+mean(Healthy_cereals[Healthy_cereals$sub_grp==4,"rating"])
+mean(Healthy_cereals[Healthy_cereals$sub_grp==5,"rating"])
+
+##Therefore from the above observations it can be infered that the first cluster is given the high rating as the healthiest cereals of all the other 4.
+
+```
